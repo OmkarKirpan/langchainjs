@@ -14,6 +14,8 @@ import {
   type StreamMode,
   type StreamOutputMap,
   type PregelOptions,
+  type StreamTransformer,
+  type GraphRunStream,
 } from "@langchain/langgraph";
 import type {
   BaseCheckpointSaver,
@@ -51,6 +53,13 @@ import {
   initializeMiddlewareStates,
   parseJumpToTarget,
 } from "./nodes/utils.js";
+import {
+  AgentRunStream,
+  createToolCallTransformer,
+  createMiddlewareTransformer,
+  type MiddlewareEvent,
+  type ToolCallStreamUnion,
+} from "./stream.js";
 
 import type {
   WithStateGraphNodes,
@@ -661,13 +670,21 @@ export class ReactAgent<
     }
 
     /**
-     * compile the graph
+     * compile the graph with native + user-defined stream transformers
      */
+    const compileTransformers = [
+      createToolCallTransformer([]),
+      createMiddlewareTransformer([]),
+      /* user-defined stream transformers */
+      ...(this.options.streamTransformers ?? []),
+    ];
+
     this.#graph = allNodeWorkflows.compile({
       checkpointer: this.options.checkpointer,
       store: this.options.store,
       name: this.options.name,
       description: this.options.description,
+      transformers: compileTransformers,
     }) as unknown as AgentGraph<Types>;
   }
 
@@ -1275,6 +1292,98 @@ export class ReactAgent<
         >
       >
     >;
+  }
+
+  /**
+   * Executes the agent with the new v2 streaming interface, returning an
+   * {@link AgentRunStream} that provides ergonomic, typed projections for
+   * messages, tool calls, and middleware events — without requiring knowledge
+   * of Pregel channels, stream modes, or namespace routing.
+   *
+   * This method is experimental and its API may change in future releases.
+   *
+   * @param state - The initial state for the agent execution. Can be:
+   *   - An object containing `messages` array and any middleware-specific state properties
+   *   - A Command object for more advanced control flow
+   *
+   * @param config - Optional runtime configuration including:
+   * @param config.context - The context for the agent execution.
+   * @param config.configurable - LangGraph configuration options like `thread_id`, `run_id`, etc.
+   * @param config.store - The store for the agent execution for persisting state.
+   * @param config.signal - An optional AbortSignal for the agent execution.
+   * @param config.recursionLimit - The recursion limit for the agent execution.
+   * @param config.transformers - Additional call-site stream transformers. These
+   *   run after the built-in agent transformers and any transformers registered
+   *   at creation time via `createAgent({ streamTransformers })`.
+   *
+   * @returns A Promise that resolves to an {@link AgentRunStream} providing:
+   *   - `run.messages` — all AI message lifecycles with streaming `.text` and `.reasoning`
+   *   - `run.toolCalls` — individual tool call streams with `.input`, `.output`, `.status`
+   *   - `run.middleware` — middleware lifecycle events (before/after agent/model)
+   *   - `run.values` — state snapshots (async iterable + promise-like)
+   *   - `run.output` — final agent state when the run completes
+   *   - `run.subgraphs` — child subgraph run streams
+   *   - `run.extensions` — merged projections from user-supplied transformers
+   *
+   * @example
+   * ```typescript
+   * const run = await agent.stream_experimental({
+   *   messages: [{ role: "user", content: "What's the weather in Paris?" }],
+   * });
+   *
+   * // Stream all messages
+   * for await (const msg of run.messages) {
+   *   for await (const token of msg.text) {
+   *     process.stdout.write(token);
+   *   }
+   * }
+   *
+   * // Observe tool calls
+   * for await (const call of run.toolCalls) {
+   *   console.log(`Tool: ${call.name}`, call.input);
+   *   console.log(`Result:`, await call.output);
+   * }
+   *
+   * // Get final state
+   * const state = await run.output;
+   * ```
+   */
+  async stream_experimental(
+    state: InvokeStateParameter<Types>,
+    config?: InvokeConfiguration<
+      InferContextInput<
+        Types["Context"] extends AnyAnnotationRoot | InteropZodObject
+          ? Types["Context"]
+          : AnyAnnotationRoot
+      > &
+        InferMiddlewareContextInputs<Types["Middleware"]>
+    > & {
+      transformers?: ReadonlyArray<() => StreamTransformer<any>>;
+    }
+  ): Promise<AgentRunStream<MergedAgentState<Types>, Types["Tools"]>> {
+    type FullState = MergedAgentState<Types>;
+
+    const { transformers: callSiteTransformers, ...restConfig } = config ?? {};
+    const mergedConfig = mergeConfigs(this.#defaultConfig, restConfig);
+    const initializedState = await this.#initializeMiddlewareStates(
+      state,
+      mergedConfig as RunnableConfig
+    );
+
+    const graphRunStream = await this.#graph.streamV2(initializedState, {
+      ...(mergedConfig as any),
+      transformers: callSiteTransformers,
+    });
+
+    const extensions = graphRunStream.extensions as Record<string, any>;
+
+    return new AgentRunStream<FullState, Types["Tools"]>(
+      graphRunStream as GraphRunStream<FullState, any>,
+      extensions._toolCalls as AsyncIterable<
+        ToolCallStreamUnion<Types["Tools"]>
+      >,
+      extensions._middleware as AsyncIterable<MiddlewareEvent>
+    );
   }
 
   /**

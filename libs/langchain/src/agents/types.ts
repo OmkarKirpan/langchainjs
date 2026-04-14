@@ -8,6 +8,7 @@ import type {
   END,
   StateGraph,
   StateDefinitionInit,
+  StreamTransformer,
 } from "@langchain/langgraph";
 
 import type {
@@ -805,6 +806,42 @@ export type CreateAgentParams<
    * @default `"v2"`
    */
   version?: "v1" | "v2";
+
+  /**
+   * Stream transformer factories baked into the compiled graph. These run
+   * automatically for every `stream_experimental()` call, after the built-in
+   * agent transformers (tool calls, middleware) and before any call-site
+   * transformers passed via `stream_experimental(input, { transformers })`.
+   *
+   * Use this to add domain-specific streaming projections that should always
+   * be available on the agent's run stream. The projection values are
+   * accessible via `run.extensions`.
+   *
+   * @example
+   * ```typescript
+   * import { StreamChannel } from "@langchain/langgraph";
+   *
+   * const costTracker = () => ({
+   *   init: () => ({ cost: new StreamChannel<number>("cost") }),
+   *   process(event) {
+   *     // track token costs...
+   *     return true;
+   *   },
+   * });
+   *
+   * const agent = createAgent({
+   *   model: "openai:gpt-4o",
+   *   tools: [myTool],
+   *   streamTransformers: [costTracker],
+   * });
+   *
+   * const run = await agent.stream_experimental({ messages });
+   * for await (const c of run.extensions.cost) {
+   *   console.log("cost delta:", c);
+   * }
+   * ```
+   */
+  streamTransformers?: ReadonlyArray<() => StreamTransformer<any>>;
 };
 
 /**
