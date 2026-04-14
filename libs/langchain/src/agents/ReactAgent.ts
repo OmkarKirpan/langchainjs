@@ -188,7 +188,7 @@ export class ReactAgent<
       Types["State"],
       Types["Context"]
     >,
-    defaultConfig?: RunnableConfig,
+    defaultConfig?: RunnableConfig
   ) {
     this.#defaultConfig = mergeConfigs(defaultConfig ?? {}, {
       metadata: { ls_integration: "langchain_create_agent" },
@@ -230,7 +230,7 @@ export class ReactAgent<
       toolClasses
         .filter(isClientTool)
         .filter((tool) => "returnDirect" in tool && tool.returnDirect)
-        .map((tool) => tool.name),
+        .map((tool) => tool.name)
     );
 
     /**
@@ -238,7 +238,7 @@ export class ReactAgent<
      * Using Zod with withLangGraph ensures LangGraph Studio gets proper metadata
      */
     const hasDynamicStructuredResponse = Boolean(
-      this.options.middleware?.some((middleware) => middleware.wrapModelCall),
+      this.options.middleware?.some((middleware) => middleware.wrapModelCall)
     );
     const { state, input, output } = createAgentState<
       Types["State"],
@@ -246,7 +246,7 @@ export class ReactAgent<
     >(
       this.options.responseFormat !== undefined || hasDynamicStructuredResponse,
       this.options.stateSchema as Types["State"],
-      this.options.middleware as Types["Middleware"],
+      this.options.middleware as Types["Middleware"]
     );
 
     const workflow = new StateGraph(state, {
@@ -320,7 +320,7 @@ export class ReactAgent<
         allNodeWorkflows.addNode(
           name,
           beforeAgentNode,
-          beforeAgentNode.nodeOptions,
+          beforeAgentNode.nodeOptions
         );
       }
       if (m.beforeModel) {
@@ -334,7 +334,7 @@ export class ReactAgent<
         allNodeWorkflows.addNode(
           name,
           beforeModelNode,
-          beforeModelNode.nodeOptions,
+          beforeModelNode.nodeOptions
         );
       }
       if (m.afterModel) {
@@ -348,7 +348,7 @@ export class ReactAgent<
         allNodeWorkflows.addNode(
           name,
           afterModelNode,
-          afterModelNode.nodeOptions,
+          afterModelNode.nodeOptions
         );
       }
       if (m.afterAgent) {
@@ -362,7 +362,7 @@ export class ReactAgent<
         allNodeWorkflows.addNode(
           name,
           afterAgentNode,
-          afterAgentNode.nodeOptions,
+          afterAgentNode.nodeOptions
         );
       }
 
@@ -445,7 +445,7 @@ export class ReactAgent<
           new Set([
             nextDefault,
             ...allowedMapped.map((dest) => (dest === END ? exitNode : dest)),
-          ]),
+          ])
         ) as BaseGraphDestination[];
 
         allNodeWorkflows.addConditionalEdges(
@@ -454,9 +454,9 @@ export class ReactAgent<
             clientTools,
             nextDefault,
             exitNode,
-            hasToolsAvailable,
+            hasToolsAvailable
           ),
-          destinations,
+          destinations
         );
       } else {
         allNodeWorkflows.addEdge(current, nextDefault);
@@ -477,7 +477,7 @@ export class ReactAgent<
           .map((t) => parseJumpToTarget(t))
           .filter((dest) => dest !== TOOLS_NODE_NAME || hasToolsAvailable);
         const destinations = Array.from(
-          new Set([nextDefault, ...allowedMapped]),
+          new Set([nextDefault, ...allowedMapped])
         ) as BaseGraphDestination[];
 
         allNodeWorkflows.addConditionalEdges(
@@ -485,9 +485,9 @@ export class ReactAgent<
           this.#createBeforeModelRouter(
             clientTools,
             nextDefault,
-            hasToolsAvailable,
+            hasToolsAvailable
           ),
-          destinations,
+          destinations
         );
       } else {
         allNodeWorkflows.addEdge(current, nextDefault);
@@ -503,11 +503,11 @@ export class ReactAgent<
       const modelPaths = this.#getModelPaths(
         clientTools,
         false,
-        hasToolsAvailable,
+        hasToolsAvailable
       );
       // Replace END with exitNode in destinations, since exitNode might be an afterAgent node
       const destinations = modelPaths.map((p) =>
-        p === END ? exitNode : p,
+        p === END ? exitNode : p
       ) as BaseGraphDestination[];
       if (destinations.length === 1) {
         allNodeWorkflows.addEdge(AGENT_NODE_NAME, destinations[0]);
@@ -515,7 +515,7 @@ export class ReactAgent<
         allNodeWorkflows.addConditionalEdges(
           AGENT_NODE_NAME,
           this.#createModelRouter(exitNode),
-          destinations,
+          destinations
         );
       }
     }
@@ -531,7 +531,7 @@ export class ReactAgent<
           .map((t) => parseJumpToTarget(t))
           .filter((dest) => dest !== TOOLS_NODE_NAME || hasToolsAvailable);
         const destinations = Array.from(
-          new Set([nextDefault, ...allowedMapped]),
+          new Set([nextDefault, ...allowedMapped])
         ) as BaseGraphDestination[];
 
         allNodeWorkflows.addConditionalEdges(
@@ -540,9 +540,9 @@ export class ReactAgent<
             clientTools,
             node.allowed,
             nextDefault,
-            hasToolsAvailable,
+            hasToolsAvailable
           ),
-          destinations,
+          destinations
         );
       } else {
         allNodeWorkflows.addEdge(current, nextDefault);
@@ -558,16 +558,16 @@ export class ReactAgent<
       const modelPaths = this.#getModelPaths(
         clientTools,
         true,
-        hasToolsAvailable,
+        hasToolsAvailable
       ).filter((p) => p !== TOOLS_NODE_NAME || hasToolsAvailable);
 
       const allowJump = Boolean(
-        firstAfterModel.allowed && firstAfterModel.allowed.length > 0,
+        firstAfterModel.allowed && firstAfterModel.allowed.length > 0
       );
 
       // Replace END with exitNode in destinations, since exitNode might be an afterAgent node
       const destinations = modelPaths.map((p) =>
-        p === END ? exitNode : p,
+        p === END ? exitNode : p
       ) as BaseGraphDestination[];
 
       allNodeWorkflows.addConditionalEdges(
@@ -576,9 +576,9 @@ export class ReactAgent<
           clientTools,
           allowJump,
           exitNode,
-          hasToolsAvailable,
+          hasToolsAvailable
         ),
-        destinations,
+        destinations
       );
     }
 
@@ -593,7 +593,7 @@ export class ReactAgent<
           .map((t) => parseJumpToTarget(t))
           .filter((dest) => dest !== TOOLS_NODE_NAME || hasToolsAvailable);
         const destinations = Array.from(
-          new Set([nextDefault, ...allowedMapped]),
+          new Set([nextDefault, ...allowedMapped])
         ) as BaseGraphDestination[];
 
         allNodeWorkflows.addConditionalEdges(
@@ -602,9 +602,9 @@ export class ReactAgent<
             clientTools,
             node.allowed,
             nextDefault,
-            hasToolsAvailable,
+            hasToolsAvailable
           ),
-          destinations,
+          destinations
         );
       } else {
         allNodeWorkflows.addEdge(current, nextDefault);
@@ -626,7 +626,7 @@ export class ReactAgent<
          * The default destination (when no jump occurs) should be END
          */
         const destinations = Array.from(
-          new Set([END, ...allowedMapped]),
+          new Set([END, ...allowedMapped])
         ) as BaseGraphDestination[];
 
         allNodeWorkflows.addConditionalEdges(
@@ -635,9 +635,9 @@ export class ReactAgent<
             clientTools,
             firstAfterAgent.allowed,
             END as string,
-            hasToolsAvailable,
+            hasToolsAvailable
           ),
-          destinations,
+          destinations
         );
       } else {
         allNodeWorkflows.addEdge(firstAfterAgentNode, END);
@@ -657,9 +657,9 @@ export class ReactAgent<
           this.#createToolsRouter(
             shouldReturnDirect,
             exitNode,
-            toolReturnTarget,
+            toolReturnTarget
           ),
-          [toolReturnTarget, exitNode as string],
+          [toolReturnTarget, exitNode as string]
         );
       } else {
         allNodeWorkflows.addEdge(TOOLS_NODE_NAME, toolReturnTarget);
@@ -732,11 +732,11 @@ export class ReactAgent<
    * ```
    */
   withConfig(
-    config: Omit<RunnableConfig, "store" | "writer" | "interrupt">,
+    config: Omit<RunnableConfig, "store" | "writer" | "interrupt">
   ): ReactAgent<Types> {
     return new ReactAgent(
       this.options,
-      mergeConfigs(this.#defaultConfig, config),
+      mergeConfigs(this.#defaultConfig, config)
     );
   }
 
@@ -750,7 +750,7 @@ export class ReactAgent<
   #getModelPaths(
     toolClasses: (ClientTool | ServerTool)[],
     includeModelRequest: boolean = false,
-    hasToolsAvailable: boolean = toolClasses.length > 0,
+    hasToolsAvailable: boolean = toolClasses.length > 0
   ): BaseGraphDestination[] {
     const paths: BaseGraphDestination[] = [];
     if (hasToolsAvailable) {
@@ -772,7 +772,7 @@ export class ReactAgent<
   #createToolsRouter(
     shouldReturnDirect: Set<string>,
     exitNode: string | typeof END,
-    toolReturnTarget: string,
+    toolReturnTarget: string
   ) {
     return (state: Record<string, unknown>) => {
       const builtInState = state as unknown as BuiltInState;
@@ -818,7 +818,7 @@ export class ReactAgent<
 
       // Check if all tool calls are for structured response extraction
       const hasOnlyStructuredResponseCalls = lastMessage.tool_calls.every(
-        (toolCall) => toolCall.name.startsWith("extract-"),
+        (toolCall) => toolCall.name.startsWith("extract-")
       );
 
       if (hasOnlyStructuredResponseCalls) {
@@ -838,7 +838,7 @@ export class ReactAgent<
        * Route to tools node (filter out any structured response tool calls)
        */
       const regularToolCalls = lastMessage.tool_calls.filter(
-        (toolCall) => !toolCall.name.startsWith("extract-"),
+        (toolCall) => !toolCall.name.startsWith("extract-")
       );
 
       if (regularToolCalls.length === 0) {
@@ -847,7 +847,7 @@ export class ReactAgent<
 
       return regularToolCalls.map(
         (toolCall) =>
-          new Send(TOOLS_NODE_NAME, { ...state, lg_tool_call: toolCall }),
+          new Send(TOOLS_NODE_NAME, { ...state, lg_tool_call: toolCall })
       );
     };
   }
@@ -871,7 +871,7 @@ export class ReactAgent<
     toolClasses: (ClientTool | ServerTool)[],
     allowJump: boolean,
     exitNode: string | typeof END,
-    hasToolsAvailable: boolean = toolClasses.length > 0,
+    hasToolsAvailable: boolean = toolClasses.length > 0
   ) {
     const hasStructuredResponse = Boolean(this.options.responseFormat);
 
@@ -911,7 +911,7 @@ export class ReactAgent<
       const toolMessages = messages.filter(ToolMessage.isInstance);
       const lastAiMessage = messages.filter(AIMessage.isInstance).at(-1);
       const pendingToolCalls = lastAiMessage?.tool_calls?.filter(
-        (call) => !toolMessages.some((m) => m.tool_call_id === call.id),
+        (call) => !toolMessages.some((m) => m.tool_call_id === call.id)
       );
       if (pendingToolCalls && pendingToolCalls.length > 0) {
         /**
@@ -924,14 +924,14 @@ export class ReactAgent<
         }
         return pendingToolCalls.map(
           (toolCall) =>
-            new Send(TOOLS_NODE_NAME, { ...state, lg_tool_call: toolCall }),
+            new Send(TOOLS_NODE_NAME, { ...state, lg_tool_call: toolCall })
         );
       }
 
       // if we exhausted all tool calls, but still have no structured response tool calls,
       // go back to model_request
       const hasStructuredResponseCalls = lastAiMessage?.tool_calls?.some(
-        (toolCall) => toolCall.name.startsWith("extract-"),
+        (toolCall) => toolCall.name.startsWith("extract-")
       );
 
       if (
@@ -953,12 +953,12 @@ export class ReactAgent<
 
       // Check if all tool calls are for structured response extraction
       const hasOnlyStructuredResponseCalls = lastMessage.tool_calls.every(
-        (toolCall) => toolCall.name.startsWith("extract-"),
+        (toolCall) => toolCall.name.startsWith("extract-")
       );
 
       // Check if there are any regular tool calls (non-structured response)
       const hasRegularToolCalls = lastMessage.tool_calls.some(
-        (toolCall) => !toolCall.name.startsWith("extract-"),
+        (toolCall) => !toolCall.name.startsWith("extract-")
       );
 
       if (hasOnlyStructuredResponseCalls || !hasRegularToolCalls) {
@@ -978,7 +978,7 @@ export class ReactAgent<
       }
 
       const regularToolCalls = (lastMessage as AIMessage).tool_calls!.filter(
-        (toolCall) => !toolCall.name.startsWith("extract-"),
+        (toolCall) => !toolCall.name.startsWith("extract-")
       );
 
       if (regularToolCalls.length === 0) {
@@ -987,7 +987,7 @@ export class ReactAgent<
 
       return regularToolCalls.map(
         (toolCall) =>
-          new Send(TOOLS_NODE_NAME, { ...state, lg_tool_call: toolCall }),
+          new Send(TOOLS_NODE_NAME, { ...state, lg_tool_call: toolCall })
       );
     };
   }
@@ -1004,7 +1004,7 @@ export class ReactAgent<
     toolClasses: (ClientTool | ServerTool)[],
     allowed: string[],
     nextDefault: string,
-    hasToolsAvailable: boolean = toolClasses.length > 0,
+    hasToolsAvailable: boolean = toolClasses.length > 0
   ) {
     const allowedSet = new Set(allowed.map((t) => parseJumpToTarget(t)));
     return (state: Record<string, unknown>) => {
@@ -1039,7 +1039,7 @@ export class ReactAgent<
     toolClasses: (ClientTool | ServerTool)[],
     nextDefault: string,
     exitNode: string | typeof END,
-    hasToolsAvailable: boolean = toolClasses.length > 0,
+    hasToolsAvailable: boolean = toolClasses.length > 0
   ) {
     return (state: Record<string, unknown>) => {
       const builtInState = state as unknown as BuiltInState;
@@ -1073,7 +1073,7 @@ export class ReactAgent<
   #createBeforeModelRouter(
     toolClasses: (ClientTool | ServerTool)[],
     nextDefault: string,
-    hasToolsAvailable: boolean = toolClasses.length > 0,
+    hasToolsAvailable: boolean = toolClasses.length > 0
   ) {
     return (state: Record<string, unknown>) => {
       const builtInState = state as unknown as BuiltInState;
@@ -1099,7 +1099,7 @@ export class ReactAgent<
    */
   async #initializeMiddlewareStates(
     state: InvokeStateParameter<Types>,
-    config: RunnableConfig,
+    config: RunnableConfig
   ): Promise<InvokeStateParameter<Types>> {
     if (
       !this.options.middleware ||
@@ -1112,7 +1112,7 @@ export class ReactAgent<
 
     const defaultStates = await initializeMiddlewareStates(
       this.options.middleware,
-      state,
+      state
     );
     const threadState = await this.#graph
       .getState(config)
@@ -1187,13 +1187,13 @@ export class ReactAgent<
           : AnyAnnotationRoot
       > &
         InferMiddlewareContextInputs<Types["Middleware"]>
-    >,
+    >
   ) {
     type FullState = MergedAgentState<Types>;
     const mergedConfig = mergeConfigs(this.#defaultConfig, config);
     const initializedState = await this.#initializeMiddlewareStates(
       state,
-      mergedConfig as RunnableConfig,
+      mergedConfig as RunnableConfig
     );
 
     return this.#graph.invoke(
@@ -1203,7 +1203,7 @@ export class ReactAgent<
           ? Types["Context"]
           : AnyAnnotationRoot
       > &
-        InferMiddlewareContextInputs<Types["Middleware"]>,
+        InferMiddlewareContextInputs<Types["Middleware"]>
     ) as Promise<FullState>;
   }
 
@@ -1265,16 +1265,16 @@ export class ReactAgent<
       TStreamMode,
       TSubgraphs,
       TEncoding
-    >,
+    >
   ) {
     const mergedConfig = mergeConfigs(this.#defaultConfig, config);
     const initializedState = await this.#initializeMiddlewareStates(
       state,
-      mergedConfig as RunnableConfig,
+      mergedConfig as RunnableConfig
     );
     return this.#graph.stream(
       initializedState,
-      mergedConfig as Record<string, any>,
+      mergedConfig as Record<string, any>
     ) as Promise<
       IterableReadableStream<
         StreamOutputMap<
@@ -1356,7 +1356,7 @@ export class ReactAgent<
         InferMiddlewareContextInputs<Types["Middleware"]>
     > & {
       transformers?: ReadonlyArray<() => StreamTransformer<any>>;
-    },
+    }
   ): Promise<AgentRunStream<MergedAgentState<Types>, Types["Tools"]>> {
     type FullState = MergedAgentState<Types>;
 
@@ -1364,7 +1364,7 @@ export class ReactAgent<
     const mergedConfig = mergeConfigs(this.#defaultConfig, restConfig);
     const initializedState = await this.#initializeMiddlewareStates(
       state,
-      mergedConfig as RunnableConfig,
+      mergedConfig as RunnableConfig
     );
 
     return (await this.#graph.streamV2(initializedState, {
@@ -1441,7 +1441,7 @@ export class ReactAgent<
       boolean,
       "text/event-stream" | undefined
     > & { version?: "v1" | "v2" },
-    streamOptions?: Parameters<Runnable["streamEvents"]>[2],
+    streamOptions?: Parameters<Runnable["streamEvents"]>[2]
   ): IterableReadableStream<StreamEvent> {
     const mergedConfig = mergeConfigs(this.#defaultConfig, config);
     return this.#graph.streamEvents(
@@ -1459,7 +1459,7 @@ export class ReactAgent<
         >),
         version: config?.version ?? "v2",
       },
-      streamOptions,
+      streamOptions
     );
   }
   /**
@@ -1498,7 +1498,7 @@ export class ReactAgent<
   updateState(
     inputConfig: LangGraphRunnableConfig,
     values: Record<string, unknown> | unknown,
-    asNode?: string,
+    asNode?: string
   ) {
     return this.#graph.updateState(inputConfig, values, asNode) as never;
   }

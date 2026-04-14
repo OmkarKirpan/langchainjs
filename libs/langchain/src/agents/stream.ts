@@ -136,7 +136,7 @@ function isAtDepth(ns: Namespace, path: Namespace): boolean {
  * `GraphRunStream` instance as `run.toolCalls`.
  */
 export function createToolCallTransformer(
-  path: Namespace,
+  path: Namespace
 ): () => NativeStreamTransformer<ToolCallProjection> {
   return () => {
     const toolCalls = new StreamChannel<ToolCallStream>("toolCalls");
@@ -154,7 +154,7 @@ export function createToolCallTransformer(
     function createToolCallEntry(
       callId: string,
       name: string,
-      input: unknown,
+      input: unknown
     ): void {
       if (pendingCalls.has(callId)) return;
 
@@ -214,7 +214,7 @@ export function createToolCallTransformer(
               createToolCallEntry(
                 String(cb.id ?? ""),
                 String(cb.name ?? ""),
-                cb.args ?? cb.input,
+                cb.args ?? cb.input
               );
             }
           }
@@ -230,7 +230,7 @@ export function createToolCallTransformer(
               toolCallId,
               ((data as Record<string, unknown>).tool_name as string) ??
                 "unknown",
-              (data as Record<string, unknown>).input,
+              (data as Record<string, unknown>).input
             );
           }
 
@@ -262,7 +262,7 @@ export function createToolCallTransformer(
           pending.resolveStatus("error");
           pending.resolveError("run finalized before tool completed");
           pending.rejectOutput(
-            new Error("run finalized before tool completed"),
+            new Error("run finalized before tool completed")
           );
         }
         pendingCalls.clear();
@@ -272,7 +272,7 @@ export function createToolCallTransformer(
         for (const pending of pendingCalls.values()) {
           pending.resolveStatus("error");
           pending.resolveError(
-            err instanceof Error ? err.message : String(err),
+            err instanceof Error ? err.message : String(err)
           );
           pending.rejectOutput(err);
         }
@@ -298,7 +298,7 @@ const MIDDLEWARE_NODE_PATTERN =
  * `GraphRunStream` instance as `run.middleware`.
  */
 export function createMiddlewareTransformer(
-  path: Namespace,
+  path: Namespace
 ): () => NativeStreamTransformer<MiddlewareProjection> {
   return () => {
     const middleware = new StreamChannel<MiddlewareEvent>("middleware");
