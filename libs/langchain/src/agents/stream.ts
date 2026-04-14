@@ -30,6 +30,10 @@ import type {
   DynamicStructuredTool,
   StructuredToolInterface,
 } from "@langchain/core/tools";
+import type {
+  AgentMiddleware,
+  InferMiddlewareState,
+} from "./middleware/types.js";
 
 /** Extract the literal `name` string from a tool type. */
 type ToolNameOf<T> = T extends { name: infer N extends string } ? N : string;
@@ -80,13 +84,35 @@ export type MiddlewarePhase =
 /**
  * Represents a single middleware lifecycle event observed during an
  * agent run. Emitted by the middleware transformer.
+ *
+ * @typeParam TStateDelta - Shape of the state delta produced by this
+ *   middleware. Defaults to `Record<string, unknown>` when the
+ *   middleware tuple is not typed.
  */
-export interface MiddlewareEvent {
+export interface MiddlewareEvent<
+  TStateDelta = Record<string, unknown>,
+> {
   phase: MiddlewarePhase;
-  middlewareName: string;
-  stateDelta: Record<string, unknown>;
+  name: string;
+  stateDelta: TStateDelta;
   timestamp: number;
 }
+
+/**
+ * Discriminated union of {@link MiddlewareEvent} variants, one per
+ * middleware in `TMiddleware`.  When the middleware array is typed,
+ * `event.stateDelta` narrows to the middleware's inferred state type.
+ *
+ * Falls back to `MiddlewareEvent` (untyped) when the middleware array
+ * is a plain `AgentMiddleware[]`.
+ */
+export type MiddlewareEventUnion<
+  TMiddleware extends readonly AgentMiddleware[],
+> = {
+  [K in keyof TMiddleware]: TMiddleware[K] extends AgentMiddleware
+    ? MiddlewareEvent<InferMiddlewareState<TMiddleware[K]>>
+    : MiddlewareEvent;
+}[number];
 
 /**
  * A {@link GraphRunStream} with native agent-level projections assigned
@@ -103,11 +129,12 @@ export type AgentRunStream<
     | ClientTool
     | ServerTool
   )[],
+  TMiddleware extends readonly AgentMiddleware[] = readonly AgentMiddleware[],
 > = GraphRunStream<TValues, any> & {
   /** Tool call streams from the native ToolCallTransformer. */
   toolCalls: AsyncIterable<ToolCallStreamUnion<TTools>>;
   /** Middleware lifecycle events from the native MiddlewareTransformer. */
-  middleware: AsyncIterable<MiddlewareEvent>;
+  middleware: AsyncIterable<MiddlewareEventUnion<TMiddleware>>;
 };
 
 interface ToolCallProjection {
@@ -324,12 +351,12 @@ export function createMiddlewareTransformer(
         const match = MIDDLEWARE_NODE_PATTERN.exec(nodeName);
         if (!match) return true;
 
-        const middlewareName = match[1];
+        const name = match[1];
         const phase = match[2] as MiddlewarePhase;
 
         middleware.push({
           phase,
-          middlewareName,
+          name,
           stateDelta: data.values ?? {},
           timestamp: event.params.timestamp,
         });

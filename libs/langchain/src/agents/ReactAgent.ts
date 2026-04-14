@@ -1357,7 +1357,7 @@ export class ReactAgent<
     > & {
       transformers?: ReadonlyArray<() => StreamTransformer<any>>;
     }
-  ): Promise<AgentRunStream<MergedAgentState<Types>, Types["Tools"]>> {
+  ): Promise<AgentRunStream<MergedAgentState<Types>, Types["Tools"], Types["Middleware"]>> {
     type FullState = MergedAgentState<Types>;
 
     const { transformers: callSiteTransformers, ...restConfig } = config ?? {};
@@ -1370,7 +1370,7 @@ export class ReactAgent<
     return (await this.#graph.streamV2(initializedState, {
       ...(mergedConfig as Record<string, any>),
       transformers: callSiteTransformers,
-    })) as unknown as AgentRunStream<FullState, Types["Tools"]>;
+    })) as unknown as AgentRunStream<FullState, Types["Tools"], Types["Middleware"]>;
   }
 
   /**

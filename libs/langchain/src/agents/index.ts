@@ -650,5 +650,6 @@ export type {
   AgentRunStream,
   MiddlewarePhase,
   MiddlewareEvent,
+  MiddlewareEventUnion,
   ToolCallStreamUnion,
 } from "./stream.js";

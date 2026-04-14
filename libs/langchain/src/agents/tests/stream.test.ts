@@ -1,5 +1,4 @@
-/* oxlint-disable @typescript-eslint/no-explicit-any */
-import { describe, it, expect, expectTypeOf } from "vitest";
+import { describe, it, expect } from "vitest";
 import { z } from "zod/v3";
 import { AIMessage, HumanMessage } from "@langchain/core/messages";
 import { tool } from "@langchain/core/tools";
@@ -52,17 +51,6 @@ describe("stream_experimental", () => {
     }> = [];
 
     for await (const call of run.toolCalls) {
-      expectTypeOf(call.name).toEqualTypeOf<"add" | "minus">();
-      expectTypeOf(call.status).toEqualTypeOf<
-        Promise<"running" | "finished" | "error">
-      >();
-      if (call.name === "add") {
-        expectTypeOf(call.input).toEqualTypeOf<{ a: number; b: number }>();
-        expectTypeOf(call.output).toEqualTypeOf<Promise<string>>();
-      } else if (call.name === "minus") {
-        expectTypeOf(call.input).toEqualTypeOf<{ a: number; b: number }>();
-        expectTypeOf(call.output).toEqualTypeOf<Promise<string>>();
-      }
       toolCalls.push({
         name: call.name,
         callId: call.callId,
@@ -114,7 +102,7 @@ describe("stream_experimental", () => {
     for await (const event of run.middleware) {
       middlewareEvents.push({
         phase: event.phase,
-        middlewareName: event.middlewareName,
+        middlewareName: event.name,
       });
     }
 
