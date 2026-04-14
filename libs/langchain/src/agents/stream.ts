@@ -89,9 +89,7 @@ export type MiddlewarePhase =
  *   middleware. Defaults to `Record<string, unknown>` when the
  *   middleware tuple is not typed.
  */
-export interface MiddlewareEvent<
-  TStateDelta = Record<string, unknown>,
-> {
+export interface MiddlewareEvent<TStateDelta = Record<string, unknown>> {
   phase: MiddlewarePhase;
   name: string;
   stateDelta: TStateDelta;
@@ -166,7 +164,7 @@ function isOwnEvent(ns: Namespace, path: Namespace): boolean {
  * `GraphRunStream` instance as `run.toolCalls`.
  */
 export function createToolCallTransformer(
-  path: Namespace,
+  path: Namespace
 ): () => NativeStreamTransformer<ToolCallProjection> {
   return () => {
     const toolCalls = new StreamChannel<ToolCallStream>("toolCalls");
@@ -184,7 +182,7 @@ export function createToolCallTransformer(
     function createToolCallEntry(
       callId: string,
       name: string,
-      rawInput: unknown,
+      rawInput: unknown
     ): void {
       if (pendingCalls.has(callId)) return;
       const input =
@@ -246,7 +244,7 @@ export function createToolCallTransformer(
               createToolCallEntry(
                 String(cb.id ?? ""),
                 String(cb.name ?? ""),
-                cb.args ?? cb.input,
+                cb.args ?? cb.input
               );
             }
           }
@@ -262,7 +260,7 @@ export function createToolCallTransformer(
               toolCallId,
               ((data as Record<string, unknown>).tool_name as string) ??
                 "unknown",
-              (data as Record<string, unknown>).input,
+              (data as Record<string, unknown>).input
             );
           }
 
@@ -302,7 +300,7 @@ export function createToolCallTransformer(
         for (const pending of pendingCalls.values()) {
           pending.resolveStatus("error");
           pending.resolveError(
-            err instanceof Error ? err.message : String(err),
+            err instanceof Error ? err.message : String(err)
           );
           pending.rejectOutput(err);
         }
@@ -328,7 +326,7 @@ const MIDDLEWARE_NODE_PATTERN =
  * `GraphRunStream` instance as `run.middleware`.
  */
 export function createMiddlewareTransformer(
-  path: Namespace,
+  path: Namespace
 ): () => NativeStreamTransformer<MiddlewareProjection> {
   return () => {
     const middleware = new StreamChannel<MiddlewareEvent>("middleware");

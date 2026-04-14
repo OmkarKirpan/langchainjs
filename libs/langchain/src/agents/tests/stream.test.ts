@@ -17,7 +17,7 @@ describe("stream_experimental", () => {
         name: "add",
         description: "Adds two numbers",
         schema: z.object({ a: z.number(), b: z.number() }),
-      },
+      }
     );
 
     const minusTool = tool(
@@ -27,7 +27,7 @@ describe("stream_experimental", () => {
         name: "minus",
         description: "Subtracts two numbers",
         schema: z.object({ a: z.number(), b: z.number() }),
-      },
+      }
     );
 
     const model = fakeModel()
@@ -124,7 +124,7 @@ describe("stream_experimental", () => {
         name: "search",
         description: "Search the web",
         schema: z.object({ query: z.string() }),
-      },
+      }
     );
 
     const model = fakeModel()
@@ -162,7 +162,7 @@ describe("stream_experimental", () => {
         name: "multiply",
         description: "Multiplies two numbers",
         schema: z.object({ a: z.number(), b: z.number() }),
-      },
+      }
     );
 
     const model = fakeModel()
@@ -295,7 +295,7 @@ describe("stream_experimental", () => {
 
     const run = await agent.stream_experimental(
       { messages: [new HumanMessage("hi")] },
-      { transformers: [methodTracker] },
+      { transformers: [methodTracker] }
     );
 
     const seenMethods: string[] = [];
@@ -314,7 +314,7 @@ describe("stream_experimental", () => {
         name: "add",
         description: "Adds two numbers",
         schema: z.object({ a: z.number(), b: z.number() }),
-      },
+      }
     );
 
     const model = fakeModel()
@@ -356,7 +356,7 @@ describe("stream_experimental", () => {
           filename: z.string(),
           content: z.string(),
         }),
-      },
+      }
     );
 
     const hitl = humanInTheLoopMiddleware({
@@ -387,7 +387,7 @@ describe("stream_experimental", () => {
 
     const run = await agent.stream_experimental(
       { messages: [new HumanMessage("Write hello to test.txt")] },
-      config,
+      config
     );
 
     const state = await run.output;
