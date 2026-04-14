@@ -587,8 +587,8 @@ importers:
   libs/langchain:
     dependencies:
       '@langchain/langgraph':
-        specifier: https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph@c95f47c
-        version: https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph@c95f47c(@langchain/core@libs+langchain-core)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(zod-to-json-schema@3.25.2(zod@4.3.6))(zod@4.3.6)
+        specifier: https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph@de53eb4
+        version: https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph@de53eb4(@langchain/core@libs+langchain-core)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(zod-to-json-schema@3.25.2(zod@4.3.6))(zod@4.3.6)
       '@langchain/langgraph-checkpoint':
         specifier: ^1.0.1
         version: 1.0.1(@langchain/core@libs+langchain-core)
@@ -4449,8 +4449,8 @@ packages:
     peerDependencies:
       '@langchain/core': workspace:^
 
-  '@langchain/langgraph-checkpoint@https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph-checkpoint@c95f47c5b49542e0af3d4ba1629f859aa38742bf':
-    resolution: {tarball: https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph-checkpoint@c95f47c5b49542e0af3d4ba1629f859aa38742bf}
+  '@langchain/langgraph-checkpoint@https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph-checkpoint@de53eb493d9f4ff219705fe55405d2b73e96ed09':
+    resolution: {tarball: https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph-checkpoint@de53eb493d9f4ff219705fe55405d2b73e96ed09}
     version: 1.0.1
     engines: {node: '>=18'}
     peerDependencies:
@@ -4504,8 +4504,8 @@ packages:
       vue:
         optional: true
 
-  '@langchain/langgraph-sdk@https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph-sdk@c95f47c5b49542e0af3d4ba1629f859aa38742bf':
-    resolution: {tarball: https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph-sdk@c95f47c5b49542e0af3d4ba1629f859aa38742bf}
+  '@langchain/langgraph-sdk@https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph-sdk@de53eb493d9f4ff219705fe55405d2b73e96ed09':
+    resolution: {tarball: https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph-sdk@de53eb493d9f4ff219705fe55405d2b73e96ed09}
     version: 1.8.8
     peerDependencies:
       '@langchain/core': workspace:^
@@ -4558,8 +4558,8 @@ packages:
       zod-to-json-schema:
         optional: true
 
-  '@langchain/langgraph@https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph@c95f47c':
-    resolution: {tarball: https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph@c95f47c}
+  '@langchain/langgraph@https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph@de53eb4':
+    resolution: {tarball: https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph@de53eb4}
     version: 1.2.8
     engines: {node: '>=18'}
     peerDependencies:
@@ -15476,7 +15476,7 @@ snapshots:
       '@langchain/core': link:libs/langchain-core
       uuid: 10.0.0
 
-  '@langchain/langgraph-checkpoint@https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph-checkpoint@c95f47c5b49542e0af3d4ba1629f859aa38742bf(@langchain/core@libs+langchain-core)':
+  '@langchain/langgraph-checkpoint@https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph-checkpoint@de53eb493d9f4ff219705fe55405d2b73e96ed09(@langchain/core@libs+langchain-core)':
     dependencies:
       '@langchain/core': link:libs/langchain-core
       uuid: 10.0.0
@@ -15514,7 +15514,7 @@ snapshots:
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
 
-  '@langchain/langgraph-sdk@https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph-sdk@c95f47c5b49542e0af3d4ba1629f859aa38742bf(@langchain/core@libs+langchain-core)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+  '@langchain/langgraph-sdk@https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph-sdk@de53eb493d9f4ff219705fe55405d2b73e96ed09(@langchain/core@libs+langchain-core)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
     dependencies:
       '@langchain/protocol': 0.0.7
       '@types/json-schema': 7.0.15
@@ -15569,11 +15569,11 @@ snapshots:
       - svelte
       - vue
 
-  '@langchain/langgraph@https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph@c95f47c(@langchain/core@libs+langchain-core)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(zod-to-json-schema@3.25.2(zod@4.3.6))(zod@4.3.6)':
+  '@langchain/langgraph@https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph@de53eb4(@langchain/core@libs+langchain-core)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(zod-to-json-schema@3.25.2(zod@4.3.6))(zod@4.3.6)':
     dependencies:
       '@langchain/core': link:libs/langchain-core
-      '@langchain/langgraph-checkpoint': https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph-checkpoint@c95f47c5b49542e0af3d4ba1629f859aa38742bf(@langchain/core@libs+langchain-core)
-      '@langchain/langgraph-sdk': https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph-sdk@c95f47c5b49542e0af3d4ba1629f859aa38742bf(@langchain/core@libs+langchain-core)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@langchain/langgraph-checkpoint': https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph-checkpoint@de53eb493d9f4ff219705fe55405d2b73e96ed09(@langchain/core@libs+langchain-core)
+      '@langchain/langgraph-sdk': https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph-sdk@de53eb493d9f4ff219705fe55405d2b73e96ed09(@langchain/core@libs+langchain-core)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@langchain/protocol': 0.0.7
       '@standard-schema/spec': 1.1.0
       uuid: 10.0.0

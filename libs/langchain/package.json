@@ -70,7 +70,7 @@
     "@langchain/core": "workspace:^"
   },
   "dependencies": {
-    "@langchain/langgraph": "https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph@c95f47c",
+    "@langchain/langgraph": "https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph@de53eb4",
     "@langchain/langgraph-checkpoint": "^1.0.1",
     "langsmith": ">=0.5.0 <1.0.0",
     "uuid": "^11.1.0",

@@ -3,26 +3,26 @@
 /**
  * Agent-level streaming support (experimental).
  *
- * Provides AgentRunStream — a wrapper over GraphRunStream that adds
- * native projections for tool calls and middleware events — and the
- * transformer factories that power them.
+ * Provides native stream transformer factories for tool calls and
+ * middleware events.  When marked `__native: true`, their projections
+ * are assigned directly onto the `GraphRunStream` instance by
+ * `createGraphRunStream` in langgraph-core — no subclass or wrapper
+ * needed.
  *
  * See protocol proposal §15 (In-Process Streaming Interface) and §16
- * (Native Stream Transformers) for the design behind this module.
+ * (Native Stream Transformers).
  */
 
 import {
   GraphRunStream,
   StreamChannel,
-  type StreamTransformer,
+  type NativeStreamTransformer,
   type ProtocolEvent,
   type ToolCallStream,
   type ToolCallStatus,
   type ToolsEventData,
   type UpdatesEventData,
-  type ChatModelStream,
   type Namespace,
-  type InterruptPayload,
 } from "@langchain/langgraph";
 import type {
   ClientTool,
@@ -30,8 +30,6 @@ import type {
   DynamicStructuredTool,
   StructuredToolInterface,
 } from "@langchain/core/tools";
-
-// ─── Tool type helpers ────────────────────────────────────────────────────────
 
 /** Extract the literal `name` string from a tool type. */
 type ToolNameOf<T> = T extends { name: infer N extends string } ? N : string;
@@ -70,8 +68,6 @@ export type ToolCallStreamUnion<
   >;
 }[number];
 
-// ─── MiddlewareEvent ──────────────────────────────────────────────────────────
-
 /**
  * Lifecycle phase that a middleware hook occupies within an agent turn.
  */
@@ -93,111 +89,29 @@ export interface MiddlewareEvent {
 }
 
 /**
- * Run stream for agent-level abstractions.
+ * A {@link GraphRunStream} with native agent-level projections assigned
+ * directly on the instance by `createGraphRunStream` (via `__native`
+ * transformers).
  *
- * Wraps a {@link GraphRunStream} from the underlying graph's `streamV2()`
- * and lifts tool call and middleware projections — registered as
- * extension transformers — into native getters.
- *
- * @typeParam TValues - Shape of the agent's merged state.
- * @typeParam TTools - Tuple of tool types; enables typed
- *   {@link ToolCallStream} narrowing on `run.toolCalls`.
+ * This is a pure type overlay — no runtime subclass exists.  Use the
+ * `AgentRunStream` type when you need to describe the return type of
+ * `stream_experimental()`.
  */
-export class AgentRunStream<
+export type AgentRunStream<
   TValues = Record<string, unknown>,
   TTools extends readonly (ClientTool | ServerTool)[] = readonly (
     | ClientTool
     | ServerTool
   )[],
-> implements AsyncIterable<ProtocolEvent> {
-  readonly #inner: GraphRunStream<TValues, any>;
-  readonly #toolCallsIterable: AsyncIterable<ToolCallStreamUnion<TTools>>;
-  readonly #middlewareIterable: AsyncIterable<MiddlewareEvent>;
-
-  constructor(
-    inner: GraphRunStream<TValues, any>,
-    toolCallsIterable: AsyncIterable<ToolCallStreamUnion<TTools>>,
-    middlewareIterable: AsyncIterable<MiddlewareEvent>
-  ) {
-    this.#inner = inner;
-    this.#toolCallsIterable = toolCallsIterable;
-    this.#middlewareIterable = middlewareIterable;
-  }
-
-  get path(): Namespace {
-    return this.#inner.path;
-  }
-
-  get extensions(): Record<string, unknown> {
-    return this.#inner.extensions;
-  }
-
-  [Symbol.asyncIterator](): AsyncIterator<ProtocolEvent> {
-    return this.#inner[Symbol.asyncIterator]();
-  }
-
-  get subgraphs(): AsyncIterable<
-    import("@langchain/langgraph").SubgraphRunStream
-  > {
-    return this.#inner.subgraphs;
-  }
-
-  get values(): AsyncIterable<TValues> & PromiseLike<TValues> {
-    return this.#inner.values;
-  }
-
-  get messages(): AsyncIterable<ChatModelStream> {
-    return this.#inner.messages;
-  }
-
-  messagesFrom(node: string): AsyncIterable<ChatModelStream> {
-    return this.#inner.messagesFrom(node);
-  }
-
-  get output(): Promise<TValues> {
-    return this.#inner.output;
-  }
-
-  get interrupted(): boolean {
-    return this.#inner.interrupted;
-  }
-
-  get interrupts(): readonly InterruptPayload[] {
-    return this.#inner.interrupts;
-  }
-
-  abort(reason?: unknown): void {
-    this.#inner.abort(reason);
-  }
-
-  get signal(): AbortSignal {
-    return this.#inner.signal;
-  }
-
-  /**
-   * Yields one {@link ToolCallStream} per tool invocation observed in
-   * the run. Tool calls are emitted when the model finishes generating
-   * arguments (before execution begins).
-   *
-   * When the agent's tools are typed (e.g. via `createAgent({ tools })`
-   * with literal inference), narrowing by `call.name` gives typed
-   * `.input` and `.output`.
-   */
-  get toolCalls(): AsyncIterable<ToolCallStreamUnion<TTools>> {
-    return this.#toolCallsIterable;
-  }
-
-  /**
-   * Yields one {@link MiddlewareEvent} per middleware lifecycle
-   * transition (before/after agent and model nodes).
-   */
-  get middleware(): AsyncIterable<MiddlewareEvent> {
-    return this.#middlewareIterable;
-  }
-}
+> = GraphRunStream<TValues, any> & {
+  /** Tool call streams from the native ToolCallTransformer. */
+  toolCalls: AsyncIterable<ToolCallStreamUnion<TTools>>;
+  /** Middleware lifecycle events from the native MiddlewareTransformer. */
+  middleware: AsyncIterable<MiddlewareEvent>;
+};
 
 interface ToolCallProjection {
-  _toolCalls: StreamChannel<ToolCallStream>;
+  toolCalls: StreamChannel<ToolCallStream>;
 }
 
 function hasPrefix(ns: Namespace, prefix: Namespace): boolean {
@@ -209,29 +123,17 @@ function hasPrefix(ns: Namespace, prefix: Namespace): boolean {
 }
 
 /**
- * Creates a transformer that correlates `tools` channel events into
- * per-call {@link ToolCallStream} objects.
+ * Creates a native transformer that correlates `tools` channel events
+ * into per-call {@link ToolCallStream} objects.
  *
- * Uses {@link StreamChannel} so that tool call data is available both
- * in-process (via `run.toolCalls`) and to remote clients (auto-forwarded
- * as protocol events on the `"toolCalls"` channel). The mux handles
- * close/fail of the channel automatically; `finalize`/`fail` only
- * clean up pending promises on in-flight tool calls.
- *
- * A tool call is created on `tool-started` (name and input available).
- * The `.output`, `.status`, and `.error` promises are resolved when
- * `tool-finished` or `tool-error` arrives for the same `tool_call_id`.
- *
- * For models that emit `content-block-finish` with `type: "tool_call"`
- * on the `messages` channel (e.g. Anthropic streaming), tool calls are
- * also captured from there — whichever event arrives first creates the
- * stream; duplicates are ignored via the pending calls map.
+ * Marked `__native: true` — projection keys land directly on the
+ * `GraphRunStream` instance as `run.toolCalls`.
  */
 export function createToolCallTransformer(
-  path: Namespace
-): () => StreamTransformer<ToolCallProjection> {
+  path: Namespace,
+): () => NativeStreamTransformer<ToolCallProjection> {
   return () => {
-    const toolCallsCh = new StreamChannel<ToolCallStream>("toolCalls");
+    const toolCalls = new StreamChannel<ToolCallStream>("toolCalls");
 
     const pendingCalls = new Map<
       string,
@@ -246,7 +148,7 @@ export function createToolCallTransformer(
     function createToolCallEntry(
       callId: string,
       name: string,
-      input: unknown
+      input: unknown,
     ): void {
       if (pendingCalls.has(callId)) return;
 
@@ -273,7 +175,7 @@ export function createToolCallTransformer(
         resolveError,
       });
 
-      toolCallsCh.push({
+      toolCalls.push({
         name,
         callId,
         input,
@@ -284,8 +186,10 @@ export function createToolCallTransformer(
     }
 
     return {
+      __native: true as const,
+
       init: () => ({
-        _toolCalls: toolCallsCh,
+        toolCalls,
       }),
 
       process(event: ProtocolEvent): boolean {
@@ -301,7 +205,7 @@ export function createToolCallTransformer(
               createToolCallEntry(
                 String(cb.id ?? ""),
                 String(cb.name ?? ""),
-                cb.args ?? cb.input
+                cb.args ?? cb.input,
               );
             }
           }
@@ -317,7 +221,7 @@ export function createToolCallTransformer(
               toolCallId,
               ((data as Record<string, unknown>).tool_name as string) ??
                 "unknown",
-              (data as Record<string, unknown>).input
+              (data as Record<string, unknown>).input,
             );
           }
 
@@ -349,7 +253,7 @@ export function createToolCallTransformer(
           pending.resolveStatus("error");
           pending.resolveError("run finalized before tool completed");
           pending.rejectOutput(
-            new Error("run finalized before tool completed")
+            new Error("run finalized before tool completed"),
           );
         }
         pendingCalls.clear();
@@ -359,7 +263,7 @@ export function createToolCallTransformer(
         for (const pending of pendingCalls.values()) {
           pending.resolveStatus("error");
           pending.resolveError(
-            err instanceof Error ? err.message : String(err)
+            err instanceof Error ? err.message : String(err),
           );
           pending.rejectOutput(err);
         }
@@ -370,34 +274,31 @@ export function createToolCallTransformer(
 }
 
 interface MiddlewareProjection {
-  _middleware: StreamChannel<MiddlewareEvent>;
+  middleware: StreamChannel<MiddlewareEvent>;
 }
 
 const MIDDLEWARE_NODE_PATTERN =
   /^(.+)\.(before_agent|before_model|after_model|after_agent)$/;
 
 /**
- * Creates a transformer that watches `updates` events from
+ * Creates a native transformer that watches `updates` events from
  * middleware nodes and surfaces them as typed {@link MiddlewareEvent}
  * objects.
  *
- * Uses {@link StreamChannel} so that middleware events are available both
- * in-process (via `run.middleware`) and to remote clients (auto-forwarded
- * as protocol events on the `"middleware"` channel). The mux handles
- * close/fail of the channel automatically — no `finalize`/`fail` needed.
- *
- * Middleware nodes follow the naming convention
- * `<middleware_name>.<phase>` (e.g. `summarization.before_model`).
+ * Marked `__native: true` — projection key lands directly on the
+ * `GraphRunStream` instance as `run.middleware`.
  */
 export function createMiddlewareTransformer(
-  path: Namespace
-): () => StreamTransformer<MiddlewareProjection> {
+  path: Namespace,
+): () => NativeStreamTransformer<MiddlewareProjection> {
   return () => {
     const middleware = new StreamChannel<MiddlewareEvent>("middleware");
 
     return {
+      __native: true as const,
+
       init: () => ({
-        _middleware: middleware,
+        middleware,
       }),
 
       process(event: ProtocolEvent): boolean {
