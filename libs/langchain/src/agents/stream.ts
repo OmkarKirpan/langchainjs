@@ -114,10 +114,16 @@ interface ToolCallProjection {
   toolCalls: StreamChannel<ToolCallStream>;
 }
 
-function hasPrefix(ns: Namespace, prefix: Namespace): boolean {
-  if (prefix.length > ns.length) return false;
-  for (let i = 0; i < prefix.length; i += 1) {
-    if (ns[i] !== prefix[i]) return false;
+/**
+ * Returns true when `ns` is at exactly the same depth as `path` (not a
+ * child namespace). Used by agent-level transformers so that
+ * `run.toolCalls` / `run.middleware` only contain events from the
+ * agent's own graph, not from subagent subgraphs.
+ */
+function isAtDepth(ns: Namespace, path: Namespace): boolean {
+  if (ns.length !== path.length) return false;
+  for (let i = 0; i < path.length; i += 1) {
+    if (ns[i] !== path[i]) return false;
   }
   return true;
 }
@@ -193,7 +199,10 @@ export function createToolCallTransformer(
       }),
 
       process(event: ProtocolEvent): boolean {
-        if (!hasPrefix(event.params.namespace, path)) return true;
+        /**
+         * Only process events that are at the same depth as the agent's graph.
+         */
+        if (!isAtDepth(event.params.namespace, path)) return true;
 
         if (event.method === "messages") {
           const data = event.params.data as Record<string, unknown>;
@@ -303,7 +312,7 @@ export function createMiddlewareTransformer(
 
       process(event: ProtocolEvent): boolean {
         if (event.method !== "updates") return true;
-        if (!hasPrefix(event.params.namespace, path)) return true;
+        if (!isAtDepth(event.params.namespace, path)) return true;
 
         const data = event.params.data as UpdatesEventData;
         const nodeName = data.node ?? event.params.node;

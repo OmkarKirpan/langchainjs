@@ -5,8 +5,10 @@ import { AIMessage, HumanMessage } from "@langchain/core/messages";
 import { tool } from "@langchain/core/tools";
 import { fakeModel } from "@langchain/core/testing";
 import { StreamChannel, type StreamTransformer } from "@langchain/langgraph";
+import { MemorySaver } from "@langchain/langgraph-checkpoint";
 
 import { createAgent, createMiddleware } from "../index.js";
+import { humanInTheLoopMiddleware } from "../middleware/hitl.js";
 
 describe("stream_experimental", () => {
   it("should emit tool call streams for each tool invocation", async () => {
@@ -16,7 +18,7 @@ describe("stream_experimental", () => {
         name: "add",
         description: "Adds two numbers",
         schema: z.object({ a: z.number(), b: z.number() }),
-      }
+      },
     );
 
     const minusTool = tool(
@@ -26,7 +28,7 @@ describe("stream_experimental", () => {
         name: "minus",
         description: "Subtracts two numbers",
         schema: z.object({ a: z.number(), b: z.number() }),
-      }
+      },
     );
 
     const model = fakeModel()
@@ -133,7 +135,7 @@ describe("stream_experimental", () => {
         name: "search",
         description: "Search the web",
         schema: z.object({ query: z.string() }),
-      }
+      },
     );
 
     const model = fakeModel()
@@ -171,7 +173,7 @@ describe("stream_experimental", () => {
         name: "multiply",
         description: "Multiplies two numbers",
         schema: z.object({ a: z.number(), b: z.number() }),
-      }
+      },
     );
 
     const model = fakeModel()
@@ -304,7 +306,7 @@ describe("stream_experimental", () => {
 
     const run = await agent.stream_experimental(
       { messages: [new HumanMessage("hi")] },
-      { transformers: [methodTracker] }
+      { transformers: [methodTracker] },
     );
 
     const seenMethods: string[] = [];
@@ -323,7 +325,7 @@ describe("stream_experimental", () => {
         name: "add",
         description: "Adds two numbers",
         schema: z.object({ a: z.number(), b: z.number() }),
-      }
+      },
     );
 
     const model = fakeModel()
@@ -352,5 +354,75 @@ describe("stream_experimental", () => {
     expect(toolCalls).toHaveLength(2);
     const ids = toolCalls.map((c) => c.callId).sort();
     expect(ids).toEqual(["call_a", "call_b"]);
+  });
+
+  it("should expose interrupted flag when HITL middleware triggers an interrupt", async () => {
+    const writeFileTool = tool(
+      (input: { filename: string; content: string }) =>
+        `Wrote ${input.content.length} chars to ${input.filename}`,
+      {
+        name: "write_file",
+        description: "Write content to a file",
+        schema: z.object({
+          filename: z.string(),
+          content: z.string(),
+        }),
+      },
+    );
+
+    const hitl = humanInTheLoopMiddleware({
+      interruptOn: {
+        write_file: { allowedDecisions: ["approve"] },
+      },
+    });
+
+    const model = fakeModel()
+      .respondWithTools([
+        {
+          name: "write_file",
+          args: { filename: "test.txt", content: "hello" },
+          id: "call_w1",
+        },
+      ])
+      .respond(new AIMessage("Done writing."));
+
+    const checkpointer = new MemorySaver();
+    const agent = createAgent({
+      model,
+      tools: [writeFileTool],
+      middleware: [hitl],
+      checkpointer,
+    });
+
+    const config = { configurable: { thread_id: "hitl-stream-test" } };
+
+    const run = await agent.stream_experimental(
+      { messages: [new HumanMessage("Write hello to test.txt")] },
+      config,
+    );
+
+    const state = await run.output;
+    expect(state).toBeDefined();
+    expect(run.interrupted).toBe(true);
+    expect(run.interrupts.length).toBeGreaterThanOrEqual(1);
+    expect(run.interrupts).toEqual([
+      expect.objectContaining({
+        payload: {
+          actionRequests: [
+            {
+              args: { content: "hello", filename: "test.txt" },
+              description: expect.stringContaining("write_file"),
+              name: "write_file",
+            },
+          ],
+          reviewConfigs: [
+            {
+              actionName: "write_file",
+              allowedDecisions: ["approve"],
+            },
+          ],
+        },
+      }),
+    ]);
   });
 });
