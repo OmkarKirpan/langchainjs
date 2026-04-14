@@ -115,13 +115,16 @@ interface ToolCallProjection {
 }
 
 /**
- * Returns true when `ns` is at exactly the same depth as `path` (not a
- * child namespace). Used by agent-level transformers so that
- * `run.toolCalls` / `run.middleware` only contain events from the
- * agent's own graph, not from subagent subgraphs.
+ * Returns true when `ns` belongs to the agent's own graph — i.e. it
+ * starts with `path` and is at most one level deeper (the agent's
+ * internal nodes like `tools`, `model_request`, etc.).
+ *
+ * Events from subagent subgraphs (two or more levels deeper) are
+ * excluded, so `run.toolCalls` / `run.middleware` only show events
+ * from the agent itself, not from its subagents.
  */
-function isAtDepth(ns: Namespace, path: Namespace): boolean {
-  if (ns.length !== path.length) return false;
+function isOwnEvent(ns: Namespace, path: Namespace): boolean {
+  if (ns.length < path.length || ns.length > path.length + 1) return false;
   for (let i = 0; i < path.length; i += 1) {
     if (ns[i] !== path[i]) return false;
   }
@@ -202,7 +205,7 @@ export function createToolCallTransformer(
         /**
          * Only process events that are at the same depth as the agent's graph.
          */
-        if (!isAtDepth(event.params.namespace, path)) return true;
+        if (!isOwnEvent(event.params.namespace, path)) return true;
 
         if (event.method === "messages") {
           const data = event.params.data as Record<string, unknown>;
@@ -312,7 +315,7 @@ export function createMiddlewareTransformer(
 
       process(event: ProtocolEvent): boolean {
         if (event.method !== "updates") return true;
-        if (!isAtDepth(event.params.namespace, path)) return true;
+        if (!isOwnEvent(event.params.namespace, path)) return true;
 
         const data = event.params.data as UpdatesEventData;
         const nodeName = data.node ?? event.params.node;
