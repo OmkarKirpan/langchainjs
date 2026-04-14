@@ -42,9 +42,12 @@
     "test:integration": "vitest --mode int"
   },
   "devDependencies": {
+    "@hono/node-server": "^1.19.14",
     "@langchain/anthropic": "workspace:*",
     "@langchain/core": "workspace:^",
     "@langchain/fireworks": "workspace:*",
+    "@langchain/langgraph-api": "https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph-api@620a039",
+    "@langchain/langgraph-sdk": "https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph-sdk@620a039",
     "@langchain/openai": "workspace:*",
     "@langchain/tsconfig": "workspace:*",
     "@tsconfig/recommended": "^1.0.2",
@@ -57,6 +60,7 @@
     "dotenv": "^17.4.0",
     "dpdm": "^3.14.0",
     "openai": "^6.22.0",
+    "hono": "^4.12.12",
     "peggy": "^5.1.0",
     "reflect-metadata": "^0.2.2",
     "rimraf": "^6.1.3",
@@ -70,7 +74,7 @@
     "@langchain/core": "workspace:^"
   },
   "dependencies": {
-    "@langchain/langgraph": "https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph@de53eb4",
+    "@langchain/langgraph": "https://pkg.pr.new/langchain-ai/langgraphjs/@langchain/langgraph@620a039",
     "@langchain/langgraph-checkpoint": "^1.0.1",
     "langsmith": ">=0.5.0 <1.0.0",
     "uuid": "^11.1.0",
