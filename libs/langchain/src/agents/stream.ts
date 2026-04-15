@@ -15,7 +15,7 @@
 
 import {
   GraphRunStream,
-  StreamChannel,
+  EventLog,
   type NativeStreamTransformer,
   type ProtocolEvent,
   type ToolCallStream,
@@ -136,7 +136,7 @@ export type AgentRunStream<
 };
 
 interface ToolCallProjection {
-  toolCalls: StreamChannel<ToolCallStream>;
+  toolCalls: AsyncIterable<ToolCallStream>;
 }
 
 /**
@@ -167,7 +167,7 @@ export function createToolCallTransformer(
   path: Namespace
 ): () => NativeStreamTransformer<ToolCallProjection> {
   return () => {
-    const toolCalls = new StreamChannel<ToolCallStream>("toolCalls");
+    const toolCallsLog = new EventLog<ToolCallStream>();
 
     const pendingCalls = new Map<
       string,
@@ -211,7 +211,7 @@ export function createToolCallTransformer(
         resolveError,
       });
 
-      toolCalls.push({
+      toolCallsLog.push({
         name,
         callId,
         input,
@@ -225,7 +225,7 @@ export function createToolCallTransformer(
       __native: true as const,
 
       init: () => ({
-        toolCalls,
+        toolCalls: toolCallsLog.toAsyncIterable(),
       }),
 
       process(event: ProtocolEvent): boolean {
@@ -294,6 +294,7 @@ export function createToolCallTransformer(
           pending.resolveOutput(undefined);
         }
         pendingCalls.clear();
+        toolCallsLog.close();
       },
 
       fail(err: unknown): void {
@@ -305,13 +306,14 @@ export function createToolCallTransformer(
           pending.rejectOutput(err);
         }
         pendingCalls.clear();
+        toolCallsLog.fail(err);
       },
     };
   };
 }
 
 interface MiddlewareProjection {
-  middleware: StreamChannel<MiddlewareEvent>;
+  middleware: AsyncIterable<MiddlewareEvent>;
 }
 
 const MIDDLEWARE_NODE_PATTERN =
@@ -329,13 +331,13 @@ export function createMiddlewareTransformer(
   path: Namespace
 ): () => NativeStreamTransformer<MiddlewareProjection> {
   return () => {
-    const middleware = new StreamChannel<MiddlewareEvent>("middleware");
+    const middlewareLog = new EventLog<MiddlewareEvent>();
 
     return {
       __native: true as const,
 
       init: () => ({
-        middleware,
+        middleware: middlewareLog.toAsyncIterable(),
       }),
 
       process(event: ProtocolEvent): boolean {
@@ -352,7 +354,7 @@ export function createMiddlewareTransformer(
         const name = match[1];
         const phase = match[2] as MiddlewarePhase;
 
-        middleware.push({
+        middlewareLog.push({
           phase,
           name,
           stateDelta: data.values ?? {},
@@ -360,6 +362,14 @@ export function createMiddlewareTransformer(
         });
 
         return true;
+      },
+
+      finalize(): void {
+        middlewareLog.close();
+      },
+
+      fail(err: unknown): void {
+        middlewareLog.fail(err);
       },
     };
   };
